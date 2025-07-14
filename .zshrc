@@ -10,7 +10,7 @@ alias short="cat ~/.zshrc"
 alias ae="nvim ~/.zshrc"
 alias ar="source ~/.zshrc"
 
-alias todo="nvim ~/.config/todo.md"
+alias todo="nvim ~/Documents/Obsidian/KMS/Todos.md"
 
 alias cat='bat --paging=never'
 

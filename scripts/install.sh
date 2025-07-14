@@ -152,6 +152,15 @@ else
     print_status "To install ghostty: brew install --cask ghostty"
 fi
 
+# Check for hammerspoon
+if command -v hs &> /dev/null; then
+    print_success "hammerspoon found"
+else
+    print_warning "hammerspoon not found"
+    print_status "To install hammerspoon: brew install --cask hammerspoon"
+    print_status "Note: Hammerspoon is required for Ghostty terminal toggle functionality"
+fi
+
 # Check for antigen
 if [[ -f "$HOMEBREW_PREFIX/share/antigen/antigen.zsh" ]]; then
     print_success "antigen found"
