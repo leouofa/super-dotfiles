@@ -121,15 +121,18 @@ else
 fi
 
 # Check for common tools
-TOOLS=("nvim" "tmux" "bat" "lsd" "fzf" "starship" "zoxide" "rbenv" "nvm" "tmux-mem-cpu-load")
+TOOLS=("nvim" "tmux" "bat" "lsd" "fzf" "starship" "zoxide" "rbenv" "nvm" "tmux-mem-cpu-load" "zsh-autosuggestions")
+
+# Tools that can be installed via Homebrew
+BREW_TOOLS=("nvim" "tmux" "bat" "lsd" "fzf" "starship" "zoxide" "rbenv" "nvm" "tmux-mem-cpu-load" "zsh-autosuggestions")
 
 for tool in "${TOOLS[@]}"; do
     if command -v "$tool" &> /dev/null; then
         print_success "$tool found"
     else
         print_warning "$tool not found"
-        if [[ "$tool" == "tmux-mem-cpu-load" ]]; then
-            print_status "To install tmux-mem-cpu-load: brew install tmux-mem-cpu-load"
+        if [[ " ${BREW_TOOLS[*]} " =~ " ${tool} " ]]; then
+            print_status "To install $tool: brew install $tool"
         fi
     fi
 done
