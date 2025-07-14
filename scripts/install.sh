@@ -41,20 +41,60 @@ if [[ ! -f "$PROJECT_ROOT/README.md" ]]; then
     exit 1
 fi
 
-# Configuration files to install
-CONFIG_FILES=(".zshrc" ".tmux.conf" ".fzf.zsh")
+# Configuration files to install (home directory)
+HOME_CONFIG_FILES=(".zshrc" ".tmux.conf" ".fzf.zsh")
+
+# Configuration files to install (.config directory)
+CONFIG_DIR_FILES=(
+    ".config/bat/config"
+    ".config/ghostty/config"
+    ".config/lsd/config.yaml"
+    ".config/nvim/lua/plugins/nvim-tmux-navigation.lua"
+    ".config/nvim/lua/plugins/which.lua"
+)
 
 # Check if all config files exist in the project
-for config_file in "${CONFIG_FILES[@]}"; do
+for config_file in "${HOME_CONFIG_FILES[@]}"; do
     if [[ ! -f "$PROJECT_ROOT/$config_file" ]]; then
         print_error "Could not find $config_file in the project directory."
         exit 1
     fi
 done
 
-# Install each configuration file
-for config_file in "${CONFIG_FILES[@]}"; do
+for config_file in "${CONFIG_DIR_FILES[@]}"; do
+    if [[ ! -f "$PROJECT_ROOT/$config_file" ]]; then
+        print_error "Could not find $config_file in the project directory."
+        exit 1
+    fi
+done
+
+# Install each home directory configuration file
+for config_file in "${HOME_CONFIG_FILES[@]}"; do
     print_status "Installing $config_file..."
+    
+    # Backup existing file if it exists
+    if [[ -f "$HOME/$config_file" ]]; then
+        BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+        print_status "Backing up existing $config_file to $BACKUP_FILE"
+        cp "$HOME/$config_file" "$BACKUP_FILE"
+        print_success "Backup created: $BACKUP_FILE"
+    fi
+    
+    # Install the file
+    cp "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
+    print_success "$config_file installed successfully!"
+done
+
+# Install each .config directory configuration file
+for config_file in "${CONFIG_DIR_FILES[@]}"; do
+    print_status "Installing $config_file..."
+    
+    # Create .config directory if it doesn't exist
+    CONFIG_DIR="$HOME/$(dirname "$config_file")"
+    if [[ ! -d "$CONFIG_DIR" ]]; then
+        print_status "Creating directory: $CONFIG_DIR"
+        mkdir -p "$CONFIG_DIR"
+    fi
     
     # Backup existing file if it exists
     if [[ -f "$HOME/$config_file" ]]; then
@@ -94,6 +134,14 @@ for tool in "${TOOLS[@]}"; do
     fi
 done
 
+# Check for ghostty (terminal emulator)
+if command -v ghostty &> /dev/null; then
+    print_success "ghostty found"
+else
+    print_warning "ghostty not found"
+    print_status "To install ghostty: brew install --cask ghostty"
+fi
+
 # Check for antigen
 if [[ -f "$HOMEBREW_PREFIX/share/antigen/antigen.zsh" ]]; then
     print_success "antigen found"
@@ -111,7 +159,20 @@ fi
 read -p "Would you like to create symlinks for easy updates? (y/n): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    for config_file in "${CONFIG_FILES[@]}"; do
+    # Create symlinks for home directory files
+    for config_file in "${HOME_CONFIG_FILES[@]}"; do
+        if [[ ! -L "$HOME/$config_file" ]]; then
+            print_status "Creating symlink for $config_file..."
+            rm -f "$HOME/$config_file"
+            ln -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
+            print_success "Symlink created for $config_file!"
+        else
+            print_status "$config_file is already a symlink"
+        fi
+    done
+    
+    # Create symlinks for .config directory files
+    for config_file in "${CONFIG_DIR_FILES[@]}"; do
         if [[ ! -L "$HOME/$config_file" ]]; then
             print_status "Creating symlink for $config_file..."
             rm -f "$HOME/$config_file"

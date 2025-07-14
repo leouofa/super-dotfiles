@@ -41,11 +41,27 @@ if [[ ! -f "$PROJECT_ROOT/README.md" ]]; then
     exit 1
 fi
 
-# Configuration files to update
-CONFIG_FILES=(".zshrc" ".tmux.conf" ".fzf.zsh")
+# Configuration files to update (home directory)
+HOME_CONFIG_FILES=(".zshrc" ".tmux.conf" ".fzf.zsh")
+
+# Configuration files to update (.config directory)
+CONFIG_DIR_FILES=(
+    ".config/bat/config"
+    ".config/ghostty/config"
+    ".config/lsd/config.yaml"
+    ".config/nvim/lua/plugins/nvim-tmux-navigation.lua"
+    ".config/nvim/lua/plugins/which.lua"
+)
 
 # Check if all config files exist in the project
-for config_file in "${CONFIG_FILES[@]}"; do
+for config_file in "${HOME_CONFIG_FILES[@]}"; do
+    if [[ ! -f "$PROJECT_ROOT/$config_file" ]]; then
+        print_error "Could not find $config_file in the project directory."
+        exit 1
+    fi
+done
+
+for config_file in "${CONFIG_DIR_FILES[@]}"; do
     if [[ ! -f "$PROJECT_ROOT/$config_file" ]]; then
         print_error "Could not find $config_file in the project directory."
         exit 1
@@ -54,7 +70,13 @@ done
 
 # Check if any config files exist in home directory
 FOUND_FILES=()
-for config_file in "${CONFIG_FILES[@]}"; do
+for config_file in "${HOME_CONFIG_FILES[@]}"; do
+    if [[ -f "$HOME/$config_file" ]]; then
+        FOUND_FILES+=("$config_file")
+    fi
+done
+
+for config_file in "${CONFIG_DIR_FILES[@]}"; do
     if [[ -f "$HOME/$config_file" ]]; then
         FOUND_FILES+=("$config_file")
     fi
@@ -70,7 +92,27 @@ fi
 SYMLINK_FILES=()
 REGULAR_FILES=()
 
-for config_file in "${CONFIG_FILES[@]}"; do
+# Check home directory files
+for config_file in "${HOME_CONFIG_FILES[@]}"; do
+    if [[ -f "$HOME/$config_file" ]]; then
+        if [[ -L "$HOME/$config_file" ]]; then
+            SYMLINK_FILES+=("$config_file")
+            # Check if the symlink points to our project
+            LINK_TARGET=$(readlink "$HOME/$config_file")
+            if [[ "$LINK_TARGET" == "$PROJECT_ROOT/$config_file" ]]; then
+                print_success "$config_file symlink is correctly pointing to project"
+            else
+                print_warning "$config_file symlink points to: $LINK_TARGET"
+                print_warning "Expected: $PROJECT_ROOT/$config_file"
+            fi
+        else
+            REGULAR_FILES+=("$config_file")
+        fi
+    fi
+done
+
+# Check .config directory files
+for config_file in "${CONFIG_DIR_FILES[@]}"; do
     if [[ -f "$HOME/$config_file" ]]; then
         if [[ -L "$HOME/$config_file" ]]; then
             SYMLINK_FILES+=("$config_file")

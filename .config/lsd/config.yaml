@@ -1,0 +1,12 @@
+blocks:
+  - permission
+  - size
+  - date
+  - name
+date: '+%b %d %y %X'
+icons: 
+  when: never
+  theme: unicode
+size: short
+sorting:
+  dir-grouping: first
