@@ -3,7 +3,6 @@ eval "$(rbenv init - zsh)"
 
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
-eval "$(fzf --zsh)"
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 alias short="cat ~/.zshrc"
@@ -57,10 +56,6 @@ antigen bundle jeffreytse/zsh-vi-mode
 antigen apply
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# Enable Ctrl+R for fzf history search in vi mode
-bindkey -M viins '^R' fzf-history-widget
-bindkey -M vicmd '^R' fzf-history-widget
 
 export EDITOR=nvim
 export FZF_CTRL_C_COMMAND="true"
