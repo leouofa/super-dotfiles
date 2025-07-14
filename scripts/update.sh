@@ -88,120 +88,70 @@ if [[ ${#FOUND_FILES[@]} -eq 0 ]]; then
     exit 0
 fi
 
-# Check for symlinks and handle updates
-SYMLINK_FILES=()
-REGULAR_FILES=()
+# Check for differences in all files
+print_status "Checking files for differences..."
 
-# Check home directory files
+FILES_TO_UPDATE=()
 for config_file in "${HOME_CONFIG_FILES[@]}"; do
     if [[ -f "$HOME/$config_file" ]]; then
-        if [[ -L "$HOME/$config_file" ]]; then
-            SYMLINK_FILES+=("$config_file")
-            # Check if the symlink points to our project
-            LINK_TARGET=$(readlink "$HOME/$config_file")
-            if [[ "$LINK_TARGET" == "$PROJECT_ROOT/$config_file" ]]; then
-                print_success "$config_file symlink is correctly pointing to project"
-            else
-                print_warning "$config_file symlink points to: $LINK_TARGET"
-                print_warning "Expected: $PROJECT_ROOT/$config_file"
-            fi
-        else
-            REGULAR_FILES+=("$config_file")
-        fi
-    fi
-done
-
-# Check .config directory files
-for config_file in "${CONFIG_DIR_FILES[@]}"; do
-    if [[ -f "$HOME/$config_file" ]]; then
-        if [[ -L "$HOME/$config_file" ]]; then
-            SYMLINK_FILES+=("$config_file")
-            # Check if the symlink points to our project
-            LINK_TARGET=$(readlink "$HOME/$config_file")
-            if [[ "$LINK_TARGET" == "$PROJECT_ROOT/$config_file" ]]; then
-                print_success "$config_file symlink is correctly pointing to project"
-            else
-                print_warning "$config_file symlink points to: $LINK_TARGET"
-                print_warning "Expected: $PROJECT_ROOT/$config_file"
-            fi
-        else
-            REGULAR_FILES+=("$config_file")
-        fi
-    fi
-done
-
-# Handle symlinked files
-if [[ ${#SYMLINK_FILES[@]} -gt 0 ]]; then
-    print_status "The following files are symlinked and will update automatically: ${SYMLINK_FILES[*]}"
-fi
-
-# Handle regular files
-if [[ ${#REGULAR_FILES[@]} -gt 0 ]]; then
-    print_status "Checking regular files for differences: ${REGULAR_FILES[*]}"
-    
-    FILES_TO_UPDATE=()
-    for config_file in "${REGULAR_FILES[@]}"; do
         if ! cmp -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"; then
             FILES_TO_UPDATE+=("$config_file")
         fi
-    done
-    
-    if [[ ${#FILES_TO_UPDATE[@]} -eq 0 ]]; then
-        print_success "All regular files are identical. No update needed."
-    else
-        print_warning "The following files have differences: ${FILES_TO_UPDATE[*]}"
-        
-        for config_file in "${FILES_TO_UPDATE[@]}"; do
-            echo
-            print_status "Differences in $config_file:"
-            diff "$HOME/$config_file" "$PROJECT_ROOT/$config_file" || true
-            echo
-            
-            # Ask user what to do for each file
-            echo "Options for $config_file:"
-            echo "1) Replace home $config_file with project version (backup will be created)"
-            echo "2) Replace project $config_file with home version"
-            echo "3) Create a symlink for future automatic updates"
-            echo "4) Skip this file"
-            
-            read -p "Choose an option (1-4): " -n 1 -r
-            echo
-            
-            case $REPLY in
-                1)
-                    print_status "Creating backup of current $config_file..."
-                    BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
-                    cp "$HOME/$config_file" "$BACKUP_FILE"
-                    print_success "Backup created: $BACKUP_FILE"
-                    
-                    print_status "Updating $config_file..."
-                    cp "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
-                    print_success "$config_file updated successfully!"
-                    ;;
-                2)
-                    print_status "Updating project $config_file with home version..."
-                    cp "$HOME/$config_file" "$PROJECT_ROOT/$config_file"
-                    print_success "Project $config_file updated!"
-                    ;;
-                3)
-                    print_status "Creating symlink for $config_file..."
-                    BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
-                    cp "$HOME/$config_file" "$BACKUP_FILE"
-                    print_success "Backup created: $BACKUP_FILE"
-                    
-                    rm "$HOME/$config_file"
-                    ln -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
-                    print_success "Symlink created for $config_file!"
-                    ;;
-                4)
-                    print_status "Skipping $config_file"
-                    ;;
-                *)
-                    print_error "Invalid option. Skipping $config_file"
-                    ;;
-            esac
-        done
     fi
+done
+
+for config_file in "${CONFIG_DIR_FILES[@]}"; do
+    if [[ -f "$HOME/$config_file" ]]; then
+        if ! cmp -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"; then
+            FILES_TO_UPDATE+=("$config_file")
+        fi
+    fi
+done
+
+if [[ ${#FILES_TO_UPDATE[@]} -eq 0 ]]; then
+    print_success "All files are identical. No update needed."
+else
+    print_warning "The following files have differences: ${FILES_TO_UPDATE[*]}"
+    
+    for config_file in "${FILES_TO_UPDATE[@]}"; do
+        echo
+        print_status "Differences in $config_file:"
+        diff "$HOME/$config_file" "$PROJECT_ROOT/$config_file" || true
+        echo
+        
+        # Ask user what to do for each file
+        echo "Options for $config_file:"
+        echo "1) Replace home $config_file with project version (backup will be created)"
+        echo "2) Replace project $config_file with home version"
+        echo "3) Skip this file"
+        
+        read -p "Choose an option (1-3): " -n 1 -r
+        echo
+        
+        case $REPLY in
+            1)
+                print_status "Creating backup of current $config_file..."
+                BACKUP_FILE="$HOME/.backups/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+                cp "$HOME/$config_file" "$BACKUP_FILE"
+                print_success "Backup created: $BACKUP_FILE"
+                
+                print_status "Updating $config_file..."
+                cp "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
+                print_success "$config_file updated successfully!"
+                ;;
+            2)
+                print_status "Updating project $config_file with home version..."
+                cp "$HOME/$config_file" "$PROJECT_ROOT/$config_file"
+                print_success "Project $config_file updated!"
+                ;;
+            3)
+                print_status "Skipping $config_file"
+                ;;
+            *)
+                print_error "Invalid option. Skipping $config_file"
+                ;;
+        esac
+    done
 fi
 
 print_success "Update complete!"

@@ -68,13 +68,20 @@ for config_file in "${CONFIG_DIR_FILES[@]}"; do
     fi
 done
 
+# Create .backups directory if it doesn't exist
+BACKUP_DIR="$HOME/.backups"
+if [[ ! -d "$BACKUP_DIR" ]]; then
+    print_status "Creating backup directory: $BACKUP_DIR"
+    mkdir -p "$BACKUP_DIR"
+fi
+
 # Install each home directory configuration file
 for config_file in "${HOME_CONFIG_FILES[@]}"; do
     print_status "Installing $config_file..."
     
     # Backup existing file if it exists
     if [[ -f "$HOME/$config_file" ]]; then
-        BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+        BACKUP_FILE="$BACKUP_DIR/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
         print_status "Backing up existing $config_file to $BACKUP_FILE"
         cp "$HOME/$config_file" "$BACKUP_FILE"
         print_success "Backup created: $BACKUP_FILE"
@@ -98,7 +105,7 @@ for config_file in "${CONFIG_DIR_FILES[@]}"; do
     
     # Backup existing file if it exists
     if [[ -f "$HOME/$config_file" ]]; then
-        BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+        BACKUP_FILE="$BACKUP_DIR/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
         print_status "Backing up existing $config_file to $BACKUP_FILE"
         cp "$HOME/$config_file" "$BACKUP_FILE"
         print_success "Backup created: $BACKUP_FILE"
@@ -158,35 +165,7 @@ else
     fi
 fi
 
-# Create symlinks for easy updates (optional)
-read -p "Would you like to create symlinks for easy updates? (y/n): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # Create symlinks for home directory files
-    for config_file in "${HOME_CONFIG_FILES[@]}"; do
-        if [[ ! -L "$HOME/$config_file" ]]; then
-            print_status "Creating symlink for $config_file..."
-            rm -f "$HOME/$config_file"
-            ln -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
-            print_success "Symlink created for $config_file!"
-        else
-            print_status "$config_file is already a symlink"
-        fi
-    done
-    
-    # Create symlinks for .config directory files
-    for config_file in "${CONFIG_DIR_FILES[@]}"; do
-        if [[ ! -L "$HOME/$config_file" ]]; then
-            print_status "Creating symlink for $config_file..."
-            rm -f "$HOME/$config_file"
-            ln -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
-            print_success "Symlink created for $config_file!"
-        else
-            print_status "$config_file is already a symlink"
-        fi
-    done
-    print_success "All symlinks created! Updates to project files will be reflected immediately."
-fi
+
 
 print_success "Installation complete!"
 print_status "To apply changes:"
