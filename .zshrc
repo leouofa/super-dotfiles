@@ -30,13 +30,12 @@ alias gs="git status"
 alias tk="nvim ~/.tmux.conf"
 alias ta="tmux a"
 alias tko="tmux kill-server "
-alias ts="tmux-search"
 
 alias mux="tmuxinator"
 
 alias rshell="exec $SHELL -l"
 
-# bindkey -v
+bindkey -v
 
 source $HOMEBREW_PREFIX/share/antigen/antigen.zsh
 
