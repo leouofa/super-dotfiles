@@ -3,14 +3,13 @@ eval "$(rbenv init - zsh)"
 
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
-eval "$(fzf --zsh)"
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 alias short="cat ~/.zshrc"
 alias ae="nvim ~/.zshrc"
 alias ar="source ~/.zshrc"
 
-alias todo="nvim ~/.config/todo.md"
+alias todo="nvim ~/Documents/Obsidian/KMS/Todos.md"
 
 alias cat='bat --paging=never'
 
@@ -30,13 +29,12 @@ alias gs="git status"
 alias tk="nvim ~/.tmux.conf"
 alias ta="tmux a"
 alias tko="tmux kill-server "
-alias ts="tmux-search"
 
 alias mux="tmuxinator"
 
 alias rshell="exec $SHELL -l"
 
-# bindkey -v
+bindkey -v
 
 source $HOMEBREW_PREFIX/share/antigen/antigen.zsh
 
@@ -58,10 +56,6 @@ antigen bundle jeffreytse/zsh-vi-mode
 antigen apply
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# Enable Ctrl+R for fzf history search in vi mode
-bindkey -M viins '^R' fzf-history-widget
-bindkey -M vicmd '^R' fzf-history-widget
 
 export EDITOR=nvim
 export FZF_CTRL_C_COMMAND="true"
