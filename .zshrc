@@ -59,6 +59,10 @@ antigen apply
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# Enable Ctrl+R for fzf history search in vi mode
+bindkey -M viins '^R' fzf-history-widget
+bindkey -M vicmd '^R' fzf-history-widget
+
 export EDITOR=nvim
 export FZF_CTRL_C_COMMAND="true"
 export FZF_DEFAULT_OPTS="--tmux --layout reverse --border top"
