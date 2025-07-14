@@ -41,92 +41,129 @@ if [[ ! -f "$PROJECT_ROOT/README.md" ]]; then
     exit 1
 fi
 
-# Check if .zshrc exists in the project
-if [[ ! -f "$PROJECT_ROOT/.zshrc" ]]; then
-    print_error "Could not find .zshrc in the project directory."
-    exit 1
-fi
+# Configuration files to update
+CONFIG_FILES=(".zshrc" ".tmux.conf" ".fzf.zsh")
 
-# Check if .zshrc exists in home directory
-if [[ ! -f "$HOME/.zshrc" ]]; then
-    print_warning "No .zshrc found in home directory. Running installation instead..."
+# Check if all config files exist in the project
+for config_file in "${CONFIG_FILES[@]}"; do
+    if [[ ! -f "$PROJECT_ROOT/$config_file" ]]; then
+        print_error "Could not find $config_file in the project directory."
+        exit 1
+    fi
+done
+
+# Check if any config files exist in home directory
+FOUND_FILES=()
+for config_file in "${CONFIG_FILES[@]}"; do
+    if [[ -f "$HOME/$config_file" ]]; then
+        FOUND_FILES+=("$config_file")
+    fi
+done
+
+if [[ ${#FOUND_FILES[@]} -eq 0 ]]; then
+    print_warning "No configuration files found in home directory. Running installation instead..."
     exec "$SCRIPT_DIR/install.sh"
     exit 0
 fi
 
-# Check if .zshrc is a symlink
-if [[ -L "$HOME/.zshrc" ]]; then
-    print_status ".zshrc is a symlink. Updating project file will automatically update your configuration."
-    
-    # Check if the symlink points to our project
-    LINK_TARGET=$(readlink "$HOME/.zshrc")
-    if [[ "$LINK_TARGET" == "$PROJECT_ROOT/.zshrc" ]]; then
-        print_success "Symlink is correctly pointing to project .zshrc"
-    else
-        print_warning "Symlink points to: $LINK_TARGET"
-        print_warning "Expected: $PROJECT_ROOT/.zshrc"
+# Check for symlinks and handle updates
+SYMLINK_FILES=()
+REGULAR_FILES=()
+
+for config_file in "${CONFIG_FILES[@]}"; do
+    if [[ -f "$HOME/$config_file" ]]; then
+        if [[ -L "$HOME/$config_file" ]]; then
+            SYMLINK_FILES+=("$config_file")
+            # Check if the symlink points to our project
+            LINK_TARGET=$(readlink "$HOME/$config_file")
+            if [[ "$LINK_TARGET" == "$PROJECT_ROOT/$config_file" ]]; then
+                print_success "$config_file symlink is correctly pointing to project"
+            else
+                print_warning "$config_file symlink points to: $LINK_TARGET"
+                print_warning "Expected: $PROJECT_ROOT/$config_file"
+            fi
+        else
+            REGULAR_FILES+=("$config_file")
+        fi
     fi
-else
-    print_status ".zshrc is a regular file. Checking for differences..."
+done
+
+# Handle symlinked files
+if [[ ${#SYMLINK_FILES[@]} -gt 0 ]]; then
+    print_status "The following files are symlinked and will update automatically: ${SYMLINK_FILES[*]}"
+fi
+
+# Handle regular files
+if [[ ${#REGULAR_FILES[@]} -gt 0 ]]; then
+    print_status "Checking regular files for differences: ${REGULAR_FILES[*]}"
     
-    # Compare files
-    if cmp -s "$PROJECT_ROOT/.zshrc" "$HOME/.zshrc"; then
-        print_success "Files are identical. No update needed."
-        exit 0
+    FILES_TO_UPDATE=()
+    for config_file in "${REGULAR_FILES[@]}"; do
+        if ! cmp -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"; then
+            FILES_TO_UPDATE+=("$config_file")
+        fi
+    done
+    
+    if [[ ${#FILES_TO_UPDATE[@]} -eq 0 ]]; then
+        print_success "All regular files are identical. No update needed."
     else
-        print_warning "Files are different. Showing differences:"
-        echo
-        diff "$HOME/.zshrc" "$PROJECT_ROOT/.zshrc" || true
-        echo
+        print_warning "The following files have differences: ${FILES_TO_UPDATE[*]}"
         
-        # Ask user what to do
-        echo "Options:"
-        echo "1) Replace home .zshrc with project version (backup will be created)"
-        echo "2) Replace project .zshrc with home version"
-        echo "3) Create a symlink for future automatic updates"
-        echo "4) Cancel"
-        
-        read -p "Choose an option (1-4): " -n 1 -r
-        echo
-        
-        case $REPLY in
-            1)
-                print_status "Creating backup of current .zshrc..."
-                BACKUP_FILE="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
-                cp "$HOME/.zshrc" "$BACKUP_FILE"
-                print_success "Backup created: $BACKUP_FILE"
-                
-                print_status "Updating .zshrc..."
-                cp "$PROJECT_ROOT/.zshrc" "$HOME/.zshrc"
-                print_success ".zshrc updated successfully!"
-                ;;
-            2)
-                print_status "Updating project .zshrc with home version..."
-                cp "$HOME/.zshrc" "$PROJECT_ROOT/.zshrc"
-                print_success "Project .zshrc updated!"
-                ;;
-            3)
-                print_status "Creating symlink..."
-                BACKUP_FILE="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
-                cp "$HOME/.zshrc" "$BACKUP_FILE"
-                print_success "Backup created: $BACKUP_FILE"
-                
-                rm "$HOME/.zshrc"
-                ln -s "$PROJECT_ROOT/.zshrc" "$HOME/.zshrc"
-                print_success "Symlink created! Future updates will be automatic."
-                ;;
-            4)
-                print_status "Update cancelled."
-                exit 0
-                ;;
-            *)
-                print_error "Invalid option. Update cancelled."
-                exit 1
-                ;;
-        esac
+        for config_file in "${FILES_TO_UPDATE[@]}"; do
+            echo
+            print_status "Differences in $config_file:"
+            diff "$HOME/$config_file" "$PROJECT_ROOT/$config_file" || true
+            echo
+            
+            # Ask user what to do for each file
+            echo "Options for $config_file:"
+            echo "1) Replace home $config_file with project version (backup will be created)"
+            echo "2) Replace project $config_file with home version"
+            echo "3) Create a symlink for future automatic updates"
+            echo "4) Skip this file"
+            
+            read -p "Choose an option (1-4): " -n 1 -r
+            echo
+            
+            case $REPLY in
+                1)
+                    print_status "Creating backup of current $config_file..."
+                    BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+                    cp "$HOME/$config_file" "$BACKUP_FILE"
+                    print_success "Backup created: $BACKUP_FILE"
+                    
+                    print_status "Updating $config_file..."
+                    cp "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
+                    print_success "$config_file updated successfully!"
+                    ;;
+                2)
+                    print_status "Updating project $config_file with home version..."
+                    cp "$HOME/$config_file" "$PROJECT_ROOT/$config_file"
+                    print_success "Project $config_file updated!"
+                    ;;
+                3)
+                    print_status "Creating symlink for $config_file..."
+                    BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+                    cp "$HOME/$config_file" "$BACKUP_FILE"
+                    print_success "Backup created: $BACKUP_FILE"
+                    
+                    rm "$HOME/$config_file"
+                    ln -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
+                    print_success "Symlink created for $config_file!"
+                    ;;
+                4)
+                    print_status "Skipping $config_file"
+                    ;;
+                *)
+                    print_error "Invalid option. Skipping $config_file"
+                    ;;
+            esac
+        done
     fi
 fi
 
 print_success "Update complete!"
-print_status "To apply changes, run: source ~/.zshrc"
-print_status "Or restart your terminal." 
+print_status "To apply changes:"
+print_status "  - For .zshrc: run 'source ~/.zshrc' or restart your terminal"
+print_status "  - For .tmux.conf: run 'tmux source-file ~/.tmux.conf' or restart tmux"
+print_status "  - For .fzf.zsh: changes will apply on next terminal session" 

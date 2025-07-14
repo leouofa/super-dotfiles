@@ -41,24 +41,33 @@ if [[ ! -f "$PROJECT_ROOT/README.md" ]]; then
     exit 1
 fi
 
-# Check if .zshrc exists in the project
-if [[ ! -f "$PROJECT_ROOT/.zshrc" ]]; then
-    print_error "Could not find .zshrc in the project directory."
-    exit 1
-fi
+# Configuration files to install
+CONFIG_FILES=(".zshrc" ".tmux.conf" ".fzf.zsh")
 
-# Backup existing .zshrc if it exists
-if [[ -f "$HOME/.zshrc" ]]; then
-    BACKUP_FILE="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
-    print_status "Backing up existing .zshrc to $BACKUP_FILE"
-    cp "$HOME/.zshrc" "$BACKUP_FILE"
-    print_success "Backup created: $BACKUP_FILE"
-fi
+# Check if all config files exist in the project
+for config_file in "${CONFIG_FILES[@]}"; do
+    if [[ ! -f "$PROJECT_ROOT/$config_file" ]]; then
+        print_error "Could not find $config_file in the project directory."
+        exit 1
+    fi
+done
 
-# Install .zshrc
-print_status "Installing .zshrc..."
-cp "$PROJECT_ROOT/.zshrc" "$HOME/.zshrc"
-print_success ".zshrc installed successfully!"
+# Install each configuration file
+for config_file in "${CONFIG_FILES[@]}"; do
+    print_status "Installing $config_file..."
+    
+    # Backup existing file if it exists
+    if [[ -f "$HOME/$config_file" ]]; then
+        BACKUP_FILE="$HOME/${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+        print_status "Backing up existing $config_file to $BACKUP_FILE"
+        cp "$HOME/$config_file" "$BACKUP_FILE"
+        print_success "Backup created: $BACKUP_FILE"
+    fi
+    
+    # Install the file
+    cp "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
+    print_success "$config_file installed successfully!"
+done
 
 # Check for required dependencies
 print_status "Checking for required dependencies..."
@@ -72,13 +81,16 @@ else
 fi
 
 # Check for common tools
-TOOLS=("nvim" "tmux" "bat" "lsd" "fzf" "starship" "zoxide" "rbenv" "nvm")
+TOOLS=("nvim" "tmux" "bat" "lsd" "fzf" "starship" "zoxide" "rbenv" "nvm" "tmux-mem-cpu-load")
 
 for tool in "${TOOLS[@]}"; do
     if command -v "$tool" &> /dev/null; then
         print_success "$tool found"
     else
         print_warning "$tool not found"
+        if [[ "$tool" == "tmux-mem-cpu-load" ]]; then
+            print_status "To install tmux-mem-cpu-load: brew install tmux-mem-cpu-load"
+        fi
     fi
 done
 
@@ -95,18 +107,25 @@ else
     fi
 fi
 
-# Create a symlink for easy updates (optional)
-if [[ ! -L "$HOME/.zshrc" ]]; then
-    read -p "Would you like to create a symlink for easy updates? (y/n): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        print_status "Creating symlink..."
-        rm "$HOME/.zshrc"
-        ln -s "$PROJECT_ROOT/.zshrc" "$HOME/.zshrc"
-        print_success "Symlink created! Updates to the project .zshrc will be reflected immediately."
-    fi
+# Create symlinks for easy updates (optional)
+read -p "Would you like to create symlinks for easy updates? (y/n): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    for config_file in "${CONFIG_FILES[@]}"; do
+        if [[ ! -L "$HOME/$config_file" ]]; then
+            print_status "Creating symlink for $config_file..."
+            rm -f "$HOME/$config_file"
+            ln -s "$PROJECT_ROOT/$config_file" "$HOME/$config_file"
+            print_success "Symlink created for $config_file!"
+        else
+            print_status "$config_file is already a symlink"
+        fi
+    done
+    print_success "All symlinks created! Updates to project files will be reflected immediately."
 fi
 
 print_success "Installation complete!"
-print_status "To apply changes, run: source ~/.zshrc"
-print_status "Or restart your terminal." 
+print_status "To apply changes:"
+print_status "  - For .zshrc: run 'source ~/.zshrc' or restart your terminal"
+print_status "  - For .tmux.conf: run 'tmux source-file ~/.tmux.conf' or restart tmux"
+print_status "  - For .fzf.zsh: changes will apply on next terminal session" 

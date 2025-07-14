@@ -59,7 +59,7 @@ antigen apply
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-export EDITOR=nv
+export EDITOR=nvim
 export FZF_CTRL_C_COMMAND="true"
 export FZF_DEFAULT_OPTS="--tmux --layout reverse --border top"
 export FZF_CTRL_T_OPTS="--tmux --layout reverse --border top --preview 'bat --color=always {}' --preview-window '~3'"
