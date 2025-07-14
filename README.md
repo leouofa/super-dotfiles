@@ -1,6 +1,6 @@
 # super-dotfiles
 
-A collection of configuration files for zsh, tmux, and fzf with automated installation and update scripts.
+A collection of configuration files for zsh, tmux, and fzf with automated installation script.
 
 ## Configuration Files
 
@@ -13,6 +13,8 @@ A collection of configuration files for zsh, tmux, and fzf with automated instal
 - `.config/bat/config` - Bat (better cat) configuration
 - `.config/ghostty/config` - Ghostty terminal configuration
 - `.config/lsd/config.yaml` - LSD (better ls) configuration
+- `.config/nvim/lua/plugins/nvim-tmux-navigation.lua` - Neovim tmux navigation plugin
+- `.config/nvim/lua/plugins/which.lua` - Neovim which-key configuration
 
 ## Installation
 
@@ -23,27 +25,23 @@ Run the installation script to set up all configuration files:
 ```
 
 The script will:
-- Backup existing configuration files
+- Create a `~/.backups` directory if it doesn't exist
+- Backup existing configuration files to `~/.backups` with timestamps
 - Install all configuration files to your home directory
 - Check for required dependencies
-- Optionally create symlinks for automatic updates
 
 ## Updating
 
-To update your configuration files:
+To update your configuration files, simply run the installation script again:
 
 ```bash
-./scripts/update.sh
+./scripts/install.sh
 ```
 
-The script will:
-- Check for differences between project and home files
-- Show you the differences
-- Allow you to choose how to handle each file:
-  1. Replace home file with project version
-  2. Replace project file with home version
-  3. Create a symlink for automatic updates
-  4. Skip the file
+The script will automatically:
+- Create backups of any existing files before overwriting them
+- Install the latest versions from the project
+- Store all backups in `~/.backups` with timestamps
 
 ## Dependencies
 
